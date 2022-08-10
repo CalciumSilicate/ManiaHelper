@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "$ver": 0,
+    "creator": "$creator",
+    "background": "$bg_name",
+    "version": "$version",
+    "id": 0,
+    "mode": 0,
+    "time": "$time",
+    "song": {
+      "title": "$song_name",
+      "artist": "$artist_name",
+      "id": 0
+    },
+    "mode_ext": {
+      "column": "$column",
+      "bar_begin": 0
+    }
+  },
+  "time": [],
+  "effect": [],
+  "note": [
+    {
+      "beat": [
+        0,
+        0,
+        1
+      ],
+      "sound": "$music_name",
+      "vol": 100,
+      "type": 1,
+      "offset": "$offset"
+    }
+  ],
+  "extra": {
+    "test": {
+      "divide": 4,
+      "speed": 100,
+      "save": 0,
+      "lock": 0,
+      "edit_mode": 0
+    }
+  }
+}
