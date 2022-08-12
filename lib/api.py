@@ -35,7 +35,7 @@ def analyze_osu_raw(chart: str) -> dict:
     flag = None
     for line in chart.splitlines():
         line = line.strip()
-        if line.startswith('//') or line.startswith('osu file format') or line == '':
+        if line.startswith('//') or 'osu file format' in line or line == '':
             continue
         if line.startswith('['):
             flag = line[1:-1]

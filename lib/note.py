@@ -36,6 +36,18 @@ class MalodyNote(NoteBase):
         # Raw Info
         self.raw_info = self.malody_key
 
+        self._ = keys
+
+    def set_times(self, bpm_list, times):
+        b = OsuNote(bpm_list, self._, self.get_osu())
+        b.set_times(bpm_list, times)
+        self.t_value = b.t_value
+        self.hold_time = b.hold_time
+        self.general_key = b.general_key
+        self.osu_key = b.get_osu()
+        self.malody_key = b.get_malody()
+        self.raw_info = b.raw_info
+
 
 class OsuNote(NoteBase):
 
@@ -76,3 +88,15 @@ class OsuNote(NoteBase):
 
         # Raw Info
         self.raw_info = self.osu_key
+
+        self._ = keys
+
+    def set_times(self, bpm_list, times):
+        osu_split = self.get_osu().split(',')
+        split_last = osu_split[-1].split(':')
+        new = [*osu_split[:2], str(round(float(osu_split[2]) / times)), *osu_split[3:5],
+               ':'.join([str(round(float(split_last[0]) / times)), *split_last[1:]])]
+        self.__init__(
+            bpm_list,
+            self._,
+            ','.join(new))

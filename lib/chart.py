@@ -4,8 +4,6 @@ from .base_class import ChartBase
 from .api import load_file_osu, analyze_osu_raw, load_file_malody, unify
 import re
 
-chart_type_list = ['osu', 'mc']
-
 
 class OsuChart(ChartBase):
     raw_chart: str

@@ -1,7 +1,11 @@
+import copy
 import math
 import os
 from time import time
 from .api import load_file_malody, raw_load
+import json
+from config import CHART_OUTPUT_DIR
+from res import osu_mould, malody_mould
 
 
 class BPMListBase:
@@ -14,7 +18,7 @@ class BPMListBase:
 
     raw_info = None
 
-    def get_osu(self):
+    def get_osu(self) -> str:
         return self.osu_bpm
 
     def get_malody(self):
@@ -22,6 +26,9 @@ class BPMListBase:
 
     def get_raw(self):
         return self.raw_info
+
+    def set_times(self, times):
+        pass
 
     def sort(self):
         self.bpm_list = list(sorted(self.bpm_list, key=lambda x: x[0]))
@@ -35,6 +42,7 @@ class NoteBase:
     general_key: tuple = None  # (time_th, hold_time, column, sound, vol)
     sound = None
     vol = None
+    _: int = None
 
     # Game Setting
     osu_key: str = None
@@ -51,6 +59,9 @@ class NoteBase:
 
     def get_raw(self):
         return self.raw_info
+
+    def set_times(self, bpm_list, times):
+        pass
 
 
 class ChartBase:
@@ -88,7 +99,7 @@ class ChartBase:
             self.analyze()
         self.create_time = math.floor(time())
         self.note_list = list(sorted(self.note_list, key=lambda x: x.t_value))
-        self.generate_malody_chart().generate_osu_chart()
+        self.refresh_chart()
 
     def load_file(self):
         pass
@@ -102,8 +113,11 @@ class ChartBase:
     def get_malody(self) -> dict:
         return self.malody_chart
 
-    def generate_malody_chart(self):
-        _ = load_file_malody(os.path.join('res/malody_mould.json'))
+    def refresh_chart(self):
+        return self.refresh_malody_chart().refresh_osu_chart()
+
+    def refresh_malody_chart(self):
+        _ = copy.deepcopy(malody_mould)
         _['meta']['creator'] = self.creator
         _['meta']['background'] = self.bg
         _['meta']['version'] = self.version
@@ -127,8 +141,8 @@ class ChartBase:
 
         return self
 
-    def generate_osu_chart(self):
-        _ = raw_load(os.path.join('res/osu_mould.osu'))
+    def refresh_osu_chart(self):
+        _ = copy.deepcopy(osu_mould)
         _ = _.replace('$music_name', self.music). \
             replace('$preview_time', str(self.preview_time)). \
             replace('$song_name', self.song_name). \
@@ -149,17 +163,49 @@ class ChartBase:
 
         return self
 
-    def write(self, path, f, is_time=True):
+    def write(self, path=os.path.join(CHART_OUTPUT_DIR, '$n'), f='osu', is_time=True):
         path = path.replace(r'$n', self.song_name)
         if f not in path:
-            path = path + f
-        path = '.'.join(path.split('.')[:-1]) + '_{}{}'.format(int(time()), f) if is_time else path
-        with open(path, 'w') as f:
-            f.write(str(self.osu_chart))
+            path = path + '.' + f
+        path = os.path.splitext(path)[0] + '_{}.{}'.format(int(time()), f) if is_time else path
+        if not os.path.exists(os.path.dirname(os.path.abspath(path))):
+            os.mkdir(os.path.dirname(os.path.abspath(path)))
+        with open(path, 'w') as fl:
+            fl.write(str(self.osu_chart if f == 'osu' else (json.dumps(self.malody_chart) if f == 'mc' else ['cnm'])))
         return self
 
-    def write_osu(self, path='output/$n', is_time=True):
-        return self.write(path, '.osu', is_time)
+    def write_osu(self, path=os.path.join(CHART_OUTPUT_DIR, '$n'), is_time=True):
+        return self.write(path, 'osu', is_time)
 
-    def write_ma(self, path='output/$n', is_time=True):
-        return self.write(path, '.mc', is_time)
+    def write_ma(self, path=os.path.join(CHART_OUTPUT_DIR, '$n'), is_time=True):
+        return self.write(path, 'mc', is_time)
+
+    def set_bpm(self, bpm):
+        bpm = float(bpm)
+        return self.set_times(round(bpm / self.bpm_list.bpm_list[0][1], 4))
+        pass
+
+    def set_times(self, times):
+        times = float(times)
+        self.version += '({}x)'.format(times)
+        self.preview_time = 0
+        self.music = '{}_{}x.mp3'.format(os.path.splitext(self.music)[0], times)
+        self.bpm_list.set_times(times)
+        self.offset = self.bpm_list.offset
+        self.raw_chart = None
+
+        __note_list = []
+        for note in self.note_list:
+            note.set_times(
+                self.bpm_list,
+                times)
+            __note_list.append(note)
+        self.note_list = __note_list
+        self.refresh_chart().create_time = time()
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self

@@ -36,6 +36,15 @@ class MalodyBPM(BPMListBase):
             beat_offset = bi2ms_bpm_list(tmp, beat_index_by_ma(*sound_note['beat']))
             self.__init__(beat_offset + self.offset, bpm_list, {'beat': [0, 0, 1]})
 
+    def set_times(self, times):
+        b = OsuBPM(self.get_osu())
+        b.set_times(times)
+        self.bpm_list = b.bpm_list
+        self.offset = b.offset
+        self.malody_bpm = b.get_malody()
+        self.osu_bpm = b.get_osu()
+        self.raw_info = b.raw_info
+
 
 class OsuBPM(BPMListBase):
 
@@ -44,6 +53,8 @@ class OsuBPM(BPMListBase):
         self.offset = -int(split_string[0].split(',')[0])
         for bpm in split_string:
             split_bpm = bpm.replace('\n', '').split(',')
+            if float(split_bpm[1]) < 0:
+                continue
             self.bpm_list.append((float(split_bpm[0]), 60000 / float(split_bpm[1])))
         self.osu_bpm = bpm_list.strip()
 
@@ -56,3 +67,12 @@ class OsuBPM(BPMListBase):
                 'bpm': bpm
             })
         self.sort()
+
+    def set_times(self, times):
+        osu = self.get_osu().splitlines()
+        new = []
+        for bpm in osu:
+            bpm_split = bpm.split(',')
+            new.append('{},{},{}'.format(round(float(bpm_split[0]) / times), float(bpm_split[1]) / times,
+                                         ','.join(bpm_split[2:])))
+        self.__init__('\n'.join(new).strip())
